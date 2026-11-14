@@ -36,3 +36,11 @@ class Booking:
     owner: str
     time: TimeRange
     title: str = ""
+
+
+@dataclass(frozen=True)
+class OwnerTotal:
+    """予約者ごとの予約時間の合計。"""
+
+    owner: str
+    total: timedelta

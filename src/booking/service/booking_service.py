@@ -1,13 +1,13 @@
-"""予約の作成、取り消し、一覧。"""
+"""予約の作成、取り消し、一覧、集計。"""
 
 from __future__ import annotations
 
 import uuid
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from booking.domain.errors import BookingNotFoundError
-from booking.domain.models import Booking, TimeRange
+from booking.domain.models import Booking, OwnerTotal, TimeRange
 from booking.domain.rules import validate_new_booking
 from booking.service.ports import BookingRepository, Clock
 
@@ -40,6 +40,21 @@ class BookingService:
         if self._repository.get(booking_id) is None:
             raise BookingNotFoundError(f"予約 {booking_id} は見つかりません")
         self._repository.delete(booking_id)
+
+    def totals_by_owner(self) -> list[OwnerTotal]:
+        """これから始まる予約（開始が現在以降）の長さを予約者ごとに合計する。
+
+        多い順に並べ、同じ長さなら予約者の名前順にする。
+        """
+        now = self._clock.now()
+        totals: dict[str, timedelta] = {}
+        for booking in self._repository.list():
+            if booking.time.start >= now:
+                totals[booking.owner] = (
+                    totals.get(booking.owner, timedelta()) + booking.time.duration
+                )
+        ranked = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
+        return [OwnerTotal(owner, total) for owner, total in ranked]
 
     def list(self, room: str | None = None) -> list[Booking]:
         bookings = self._repository.list()

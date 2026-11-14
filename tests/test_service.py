@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 
 from booking.domain.errors import (
@@ -10,7 +12,7 @@ from booking.domain.errors import (
     TooLongError,
 )
 from booking.service.booking_service import BookingService
-from tests.conftest import at
+from tests.conftest import FixedClock, at
 
 
 def test_create_returns_saved_booking(service: BookingService) -> None:
@@ -68,3 +70,34 @@ def test_list_is_sorted_by_start_and_filtered_by_room(service: BookingService) -
     early = service.create("A", "miruky", at(9), at(10))
     service.create("B", "guest", at(9), at(10))
     assert service.list("A") == [early, late]
+
+
+def test_totals_are_summed_per_owner(service: BookingService) -> None:
+    service.create("A", "miruky", at(10), at(11))
+    service.create("B", "miruky", at(13), at(15, 30))
+    [total] = service.totals_by_owner()
+    assert (total.owner, total.total) == ("miruky", timedelta(hours=3.5))
+
+
+def test_totals_are_sorted_by_hours_desc_then_owner(service: BookingService) -> None:
+    service.create("A", "ren", at(10), at(11))
+    service.create("B", "aoi", at(10), at(11))
+    service.create("C", "sora", at(10), at(12))
+    assert [t.owner for t in service.totals_by_owner()] == ["sora", "aoi", "ren"]
+
+
+def test_started_bookings_are_not_counted(service: BookingService, clock: FixedClock) -> None:
+    service.create("A", "aoi", at(10), at(12))
+    service.create("A", "ren", at(13), at(14))
+    clock.moment = at(11)
+    assert [t.owner for t in service.totals_by_owner()] == ["ren"]
+
+
+def test_booking_starting_now_is_counted(service: BookingService, clock: FixedClock) -> None:
+    service.create("A", "aoi", at(10), at(11))
+    clock.moment = at(10)
+    assert [t.owner for t in service.totals_by_owner()] == ["aoi"]
+
+
+def test_no_upcoming_bookings_gives_empty_totals(service: BookingService) -> None:
+    assert service.totals_by_owner() == []

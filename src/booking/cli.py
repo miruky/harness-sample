@@ -11,7 +11,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from booking.domain.errors import BookingError
-from booking.domain.models import Booking
+from booking.domain.models import Booking, OwnerTotal
 from booking.service.booking_service import BookingService
 from booking.service.ports import Clock
 from booking.storage.json_file import JsonFileRepository
@@ -38,6 +38,14 @@ def _format(booking: Booking) -> str:
     return f"{line}  {booking.title}" if booking.title else line
 
 
+def _format_total(total: OwnerTotal) -> str:
+    # 15分単位なので小数第2位まであれば正確に出せる。末尾の0は1桁まで削る（3.50 → 3.5、1.00 → 1.0）
+    hours = f"{total.total.total_seconds() / 3600:.2f}".rstrip("0")
+    if hours.endswith("."):
+        hours += "0"
+    return f"{total.owner} {hours}h"
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="booking", description="会議室を予約する")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -54,6 +62,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     cancel = sub.add_parser("cancel", help="予約を取り消す")
     cancel.add_argument("booking_id")
+
+    sub.add_parser("stats", help="これから始まる予約の合計時間を予約者ごとに出す")
     return parser
 
 
@@ -71,6 +81,9 @@ def main(argv: Sequence[str] | None = None, clock: Clock | None = None) -> int:
         elif args.command == "cancel":
             service.cancel(args.booking_id)
             print(f"取り消しました: {args.booking_id}")
+        elif args.command == "stats":
+            for total in service.totals_by_owner():
+                print(_format_total(total))
     except BookingError as error:
         print(f"受け付けられません: {error}", file=sys.stderr)
         return EXIT_REJECTED

@@ -46,3 +46,16 @@ def test_overlap_exits_with_1_and_explains(capsys: pytest.CaptureFixture[str]) -
 
 def test_cancel_unknown_booking_exits_with_1() -> None:
     assert run("cancel", "nope") == 1
+
+
+def book(owner: str, room: str, start: str, end: str) -> None:
+    assert run("add", "--room", room, "--owner", owner, "--start", start, "--end", end) == 0
+
+
+def test_stats_prints_owner_and_hours(capsys: pytest.CaptureFixture[str]) -> None:
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    book("miruky", "B", "2026-12-01T13:00", "2026-12-01T15:45")
+    book("aoi", "A", "2026-12-02T10:00", "2026-12-02T11:00")
+    capsys.readouterr()
+    assert run("stats") == 0
+    assert capsys.readouterr().out.splitlines() == ["miruky 3.75h", "aoi 1.0h"]
