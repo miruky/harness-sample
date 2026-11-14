@@ -43,3 +43,10 @@ uv run python evals/summarize.py s0 s1
 - 1回の結果で判断しません。同じ条件でも結果は毎回変わるので、課題ごとに3回以上実行します。
 - 採点が正しいかどうかは、やり取りの記録（`<作業場所>.transcript.jsonl`）を開いて確かめます。
 - 課題を足すときは、実際に起きた失敗から作ります。
+
+Codex で測るときは `--agent codex` を付けます。作業フォルダが毎回新しく、フックの信頼を対話で与えられないので、`--dangerously-bypass-hook-trust` を付けて実行します。
+
+```bash
+# Codex（GPT-6 Astra の high）で、stage-4 の課題を1回解かせる
+python3 evals/run.py --ref stage-4 --task stats --model gpt-6-astra@high --agent codex --workroot /tmp/harness-evals
+```
