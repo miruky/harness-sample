@@ -36,6 +36,7 @@ make check     # 整形、リント、型、層の向き、テスト
 ```bash
 uv run booking add --room A --owner miruky --start 2026-12-01T10:00 --end 2026-12-01T11:00
 uv run booking list
+uv run booking list --date 2026-12-01 # 東京時間でこの日に始まる予約（--room A と併用可）
 uv run booking cancel <予約ID>
 uv run booking stats    # これから始まる予約の合計時間を予約者ごとに、多い順で出す（例 miruky 3.5h）
 ```

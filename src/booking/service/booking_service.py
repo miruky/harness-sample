@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from booking.domain.errors import BookingNotFoundError
 from booking.domain.models import Booking, OwnerTotal, TimeRange
 from booking.domain.rules import validate_new_booking
 from booking.service.ports import BookingRepository, Clock
+
+TOKYO = ZoneInfo("Asia/Tokyo")
 
 
 def _new_id() -> str:
@@ -56,8 +59,10 @@ class BookingService:
         ranked = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
         return [OwnerTotal(owner, total) for owner, total in ranked]
 
-    def list(self, room: str | None = None) -> list[Booking]:
+    def list(self, room: str | None = None, on_date: date | None = None) -> list[Booking]:
         bookings = self._repository.list()
         if room is not None:
             bookings = [b for b in bookings if b.room == room]
+        if on_date is not None:
+            bookings = [b for b in bookings if b.time.start.astimezone(TOKYO).date() == on_date]
         return sorted(bookings, key=lambda b: (b.time.start, b.room))
