@@ -18,7 +18,8 @@
     ],
     "deny": [
       "Read(./.env)",
-      "Read(./.env.*)",
+      "Read(./.env.local)",
+      "Read(./.env.*.local)",
       "Read(./bookings.json)",
       "Edit(./bookings.json)",
       "Edit(./uv.lock)",
