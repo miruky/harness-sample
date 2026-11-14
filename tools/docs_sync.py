@@ -81,9 +81,22 @@ def render(markdown: str, source: str) -> str:
 
 
 def plain(storage: str) -> str:
-    """タグ、Markdown の記号、空白を除いた本文の文字。APIで書いてもMCPで書いても同じ形で比べる。"""
-    text = html.unescape(re.sub(r"<[^>]+>", " ", storage))
+    """APIで書いたページ（XHTML）から、タグ、記号、空白を除いた本文の文字。"""
+    return squeeze(html.unescape(re.sub(r"<[^>]+>", " ", storage)))
+
+
+def squeeze(text: str) -> str:
+    """Markdown の記号と空白を除いた文字。"""
     return re.sub(r"[\s#*`\-]+", "", text)
+
+
+def markdown_body(markdown: str, source: str) -> str:
+    """MCPで書き込む本文。Markdown のまま、APIで書くページと同じ注意書きと sha256 を付ける。"""
+    return (
+        markdown.rstrip("\n")
+        + f"\n\nこのページは {source} から自動で書き込まれます。直接編集しないでください。"
+        + f"\n\n{MARK}: {source} sha256:{digest(markdown)}\n"
+    )
 
 
 def title_of(markdown: str, path: Path) -> str:
@@ -154,7 +167,13 @@ def mismatch(markdown: str, source: str, remote: str) -> str:
     recorded = re.search(rf"{MARK}: \S+ sha256:([0-9a-f]{{64}})", plain_keep_space(remote))
     if recorded is None or recorded.group(1) != digest(markdown):
         return "の sha256 がローカルと違います（ページが古いままです）"
-    if plain(remote) != plain(render(markdown, source)):
+    # MCPで書いたページは Markdown のまま保存される。`<予約ID>` をタグと取り違えないよう、比べ方を変える
+    written_as_markdown = "<p>" not in remote
+    if written_as_markdown:
+        same = squeeze(remote) == squeeze(markdown_body(markdown, source))
+    else:
+        same = plain(remote) == plain(render(markdown, source))
+    if not same:
         return "の本文がローカルと違います（画面で編集されています）"
     return ""
 

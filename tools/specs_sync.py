@@ -20,6 +20,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from tools.docs_sync import markdown_body  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 SPECS = ROOT / "docs" / "specs"
 LEDGER = SPECS / ".sync.json"
@@ -67,14 +70,8 @@ def status() -> int:
 
 
 def payload(path: Path) -> int:
-    """MCPで書き込む本文。APIで書き込むページと同じ注意書きと sha256 を末尾に付ける。"""
-    text = path.read_text(encoding="utf-8")
-    source = name_of(path)
-    print(text.rstrip("\n"))
-    print()
-    print(f"このページは {source} から自動で書き込まれます。直接編集しないでください。")
-    print()
-    print(f"docs-sync: {source} sha256:{digest(text)}")
+    """MCPで書き込む本文を出す。中身は docs_sync.py と同じものを使う。"""
+    sys.stdout.write(markdown_body(path.read_text(encoding="utf-8"), name_of(path)))
     return 0
 
 

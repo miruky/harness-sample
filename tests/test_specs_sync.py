@@ -60,3 +60,12 @@ def test_page_written_through_mcp_passes_the_same_check_as_the_api(
     body = capsys.readouterr().out
     assert docs_sync.verify_body(spec, body) == 0
     assert docs_sync.verify_body(spec, body.replace("room", "user")) == 1
+
+
+def test_angle_brackets_in_markdown_are_not_taken_for_tags(
+    spec: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(docs_sync, "ROOT", specs_sync.ROOT)
+    spec.write_text("# 予約の取り消し\n\n- `booking cancel <予約ID>` で消す\n", encoding="utf-8")
+    specs_sync.payload(spec)
+    assert docs_sync.verify_body(spec, capsys.readouterr().out) == 0
