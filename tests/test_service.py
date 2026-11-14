@@ -48,9 +48,18 @@ def test_longer_than_four_hours_is_rejected(service: BookingService) -> None:
         service.create("A", "miruky", at(9), at(13, 15))
 
 
+def test_exactly_four_hours_is_accepted(service: BookingService) -> None:
+    booking = service.create("A", "miruky", at(9), at(13))
+    assert booking.time.duration == timedelta(hours=4)
+
+
 def test_past_start_is_rejected(service: BookingService) -> None:
     with pytest.raises(PastBookingError):
         service.create("A", "miruky", at(7), at(8))
+
+
+def test_start_exactly_now_is_accepted(service: BookingService) -> None:
+    assert service.create("A", "miruky", at(8), at(9)).time.start == at(8)
 
 
 def test_cancel_frees_the_slot(service: BookingService) -> None:
