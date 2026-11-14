@@ -167,7 +167,7 @@ def mismatch(markdown: str, source: str, remote: str) -> str:
     recorded = re.search(rf"{MARK}: \S+ sha256:([0-9a-f]{{64}})", plain_keep_space(remote))
     if recorded is None or recorded.group(1) != digest(markdown):
         return "の sha256 がローカルと違います（ページが古いままです）"
-    # MCPで書いたページは Markdown のまま保存される。`<予約ID>` をタグと取り違えないよう、比べ方を変える
+    # MCPで書いたページは Markdown のまま保存される。山かっこをタグと取り違えないよう比べ方を変える
     written_as_markdown = "<p>" not in remote
     if written_as_markdown:
         same = squeeze(remote) == squeeze(markdown_body(markdown, source))
