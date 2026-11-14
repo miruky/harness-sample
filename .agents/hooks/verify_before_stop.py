@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Stop: 変更があれば、整形してから全検査を走らせる。通っていなければ、終わらせずに結果を返す。
+"""Stop: 終わる前に3つ確かめる。通っていなければ、終わらせずに理由を返す。
+
+1. 最後の報告が日本語か。指示ファイルと設定に書いても英語の報告が残ったので、ここで確かめる
+2. 人が確かめてから変えるファイルが、書き換わっていないか
+3. 変更があれば、整形してから make check が通るか
 
 整形と、自動で直せるリントの修正は黙って済ませる。モデルに頼まなくても機械で決まるため。
 直らないまま回り続けないよう、同じセッションで続けて止めるのは3回までにする。
@@ -18,6 +22,15 @@ MAX_BLOCKS = 3
 HUMAN_OWNED = (".agents/hooks/", ".github/workflows/", ".claude/settings.json", ".codex/")
 
 
+def written_in_japanese(message: str) -> bool:
+    """短い返事やコードだけの返事は対象にせず、文章の報告だけを見る。"""
+    letters = sum(1 for ch in message if ch.isalpha())
+    if letters < 40:
+        return True
+    japanese = sum(1 for ch in message if "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff")
+    return japanese / letters > 0.2
+
+
 def human_owned_changes(status: str) -> list[str]:
     paths = [line[3:].strip().strip('"') for line in status.splitlines()]
     changed = [p for p in paths if p.startswith(HUMAN_OWNED)]
@@ -28,25 +41,30 @@ def human_owned_changes(status: str) -> list[str]:
 
 def main() -> None:
     event = read_input()
+    state_file = PROJECT / ".harness" / "logs" / f"stop-{event.get('session_id', 'unknown')}.json"
+    blocks = json.loads(state_file.read_text())["blocks"] if state_file.exists() else 0
+
+    def stop(message: str) -> None:
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        state_file.write_text(json.dumps({"blocks": blocks + 1}))
+        block(event, "verify_before_stop", message)
+
+    message = str(event.get("last_assistant_message") or "")
+    if blocks < MAX_BLOCKS and not written_in_japanese(message):
+        stop("報告が日本語になっていません。同じ内容を日本語で書き直してください。")
+
     status = subprocess.run(
         ["git", "status", "--porcelain"], cwd=PROJECT, capture_output=True, text=True
     )
     if not status.stdout.strip():
         return  # 何も変えていない応答（質問への回答など）では検査しない
 
-    state_file = PROJECT / ".harness" / "logs" / f"stop-{event.get('session_id', 'unknown')}.json"
-    blocks = json.loads(state_file.read_text())["blocks"] if state_file.exists() else 0
-
     owned = human_owned_changes(status.stdout)
     if owned and blocks < MAX_BLOCKS:
-        state_file.parent.mkdir(parents=True, exist_ok=True)
-        state_file.write_text(json.dumps({"blocks": blocks + 1}))
-        block(
-            event,
-            "verify_before_stop",
+        stop(
             "人が確かめてから変えるファイルが書き換わっています: "
             + ", ".join(owned)
-            + "\n人から頼まれた変更でなければ git checkout で元に戻し、変えたい内容を返答に書いてください。",
+            + "\n人から頼まれた変更でなければ git checkout で元に戻し、変えたい内容を返答に書いてください。"
         )
 
     subprocess.run(["make", "format"], cwd=PROJECT, capture_output=True, text=True, timeout=120)
@@ -62,14 +80,8 @@ def main() -> None:
         print(json.dumps({"systemMessage": "make check が通っていません。人の確認が必要です。"}))
         return
 
-    state_file.parent.mkdir(parents=True, exist_ok=True)
-    state_file.write_text(json.dumps({"blocks": blocks + 1}))
     tail = (check.stdout + check.stderr).strip()[-3000:]
-    block(
-        event,
-        "verify_before_stop",
-        "make check が通っていません。出力を読んで直してから終えてください。\n\n" + tail,
-    )
+    stop("make check が通っていません。出力を読んで直してから終えてください。\n\n" + tail)
 
 
 if __name__ == "__main__":

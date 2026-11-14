@@ -112,3 +112,14 @@ def test_stop_hook_accepts_a_lockfile_changed_together_with_pyproject() -> None:
     hook = load_hook("verify_before_stop")
     status = " M pyproject.toml\n M uv.lock\n"
     assert hook.human_owned_changes(status) == []  # type: ignore[attr-defined]
+
+
+def test_stop_hook_tells_an_english_report_from_a_japanese_one() -> None:
+    hook = load_hook("verify_before_stop")
+    english = (
+        "I added the stats command. All 31 tests pass, and ruff and mypy show no issues at all."
+    )
+    japanese = "stats コマンドを追加しました。テスト31件、ruff、mypy はすべて通っています。"
+    assert not hook.written_in_japanese(english)  # type: ignore[attr-defined]
+    assert hook.written_in_japanese(japanese)  # type: ignore[attr-defined]
+    assert hook.written_in_japanese("ok")  # type: ignore[attr-defined]
