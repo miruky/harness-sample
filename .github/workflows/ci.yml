@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      # 依存をロックファイルのとおりに入れる
+      - run: uv sync --locked
+      # 手元とエージェントが使うのと同じ1本を通す
+      - run: make check
+      # 指示ファイルと設定が古くなっていないかを確かめる
+      - run: uv run python tools/check_harness.py

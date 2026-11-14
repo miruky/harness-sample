@@ -21,7 +21,6 @@ uv run booking cancel <予約ID>
 ## 開発
 
 ```bash
-uv run pytest
-uv run ruff check .
-uv run mypy
+make check    # 整形、リント、型、層の向き、テスト
+make format   # 整形と、自動で直せるリントの修正
 ```

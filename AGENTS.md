@@ -4,13 +4,13 @@
 
 ## 作業を終える前に
 
-次の4つを通します。1つでも失敗したら、直してから完了を報告します。
+`make check` を通します。整形、リント、型、層の向き、テストをまとめて確かめる1本で、CIも同じものを実行します。
+失敗したら出力に直し方が出るので、直してから完了を報告します。
 
 ```bash
-uv run ruff format .
-uv run ruff check .
-uv run mypy
-uv run pytest
+make check                                  # 全部
+make format                                 # 整形と、自動で直せるリントの修正
+uv run pytest tests/test_service.py -k 名前  # テストを1件だけ
 ```
 
 ## 決まりごと
@@ -18,7 +18,7 @@ uv run pytest
 - 返答、コミットメッセージ、コードのコメント、利用者に見せる文言は日本語で書く。
 - 利用者から見える変更は、`CHANGELOG.md` の「未リリース」に1行足す。
 - 現在時刻は `Clock` から受け取る。`datetime.now()` を呼んでよいのは `src/booking/cli.py` だけ。
-- 層の向きは domain → service → storage / cli。内側から外側を import しない。
+- 層の向きは domain → service → storage / cli。内側から外側を import しない（`tools/check_layers.py` が検査する）。
 
 ## 触らないもの
 

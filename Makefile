@@ -1,0 +1,24 @@
+# 人もエージェントもCIも、確認はこの1本を通す
+.PHONY: setup check format lint types layers test
+
+setup:
+	uv sync
+
+check: lint types layers test
+
+format:
+	uv run ruff format .
+	uv run ruff check --fix .
+
+lint:
+	uv run ruff format --check .
+	uv run ruff check .
+
+types:
+	uv run mypy
+
+layers:
+	uv run python tools/check_layers.py
+
+test:
+	uv run pytest

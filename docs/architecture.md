@@ -25,3 +25,7 @@ src/booking/
 
 domain と service は現在時刻を直接取りません。`Clock` を引数で受け取り、テストでは `tests/conftest.py` の `FixedClock` を使います。
 理由は [decisions/0002-inject-clock.md](decisions/0002-inject-clock.md) にあります。
+
+## 検査
+
+向きと時計の決まりは `tools/check_layers.py` が検査します。`make check` と CI の両方で動き、違反には直し方が付きます。
