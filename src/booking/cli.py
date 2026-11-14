@@ -6,7 +6,7 @@ import argparse
 import os
 import sys
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -29,6 +29,16 @@ class SystemClock:
 def _parse_moment(text: str) -> datetime:
     moment = datetime.fromisoformat(text)
     return moment if moment.tzinfo is not None else moment.replace(tzinfo=TOKYO)
+
+
+def _parse_date(text: str) -> date:
+    try:
+        parsed = date.fromisoformat(text)
+        if parsed.isoformat() != text:
+            raise ValueError
+    except ValueError as error:
+        raise BookingError("日付は YYYY-MM-DD 形式の実在する日付で指定してください") from error
+    return parsed
 
 
 def _format(booking: Booking) -> str:
@@ -59,6 +69,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     listing = sub.add_parser("list", help="予約を一覧する")
     listing.add_argument("--room")
+    listing.add_argument("--date", metavar="YYYY-MM-DD", help="東京時間で指定日に始まる予約")
 
     cancel = sub.add_parser("cancel", help="予約を取り消す")
     cancel.add_argument("booking_id")
@@ -76,7 +87,8 @@ def main(argv: Sequence[str] | None = None, clock: Clock | None = None) -> int:
             booking = service.create(args.room, args.owner, args.start, args.end, args.title)
             print(_format(booking))
         elif args.command == "list":
-            for booking in service.list(args.room):
+            on_date = _parse_date(args.date) if args.date is not None else None
+            for booking in service.list(args.room, on_date=on_date):
                 print(_format(booking))
         elif args.command == "cancel":
             service.cancel(args.booking_id)

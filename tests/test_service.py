@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 
 import pytest
 
@@ -101,3 +101,36 @@ def test_booking_starting_now_is_counted(service: BookingService, clock: FixedCl
 
 def test_no_upcoming_bookings_gives_empty_totals(service: BookingService) -> None:
     assert service.totals_by_owner() == []
+
+
+def test_list_date_uses_tokyo_start_day_and_midnight_boundaries(service: BookingService) -> None:
+    service.create("A", "miruky", at(23, 45), at(0, 15, day=2))
+    last = service.create("A", "miruky", at(23, 45, day=2), at(0, 15, day=3))
+    first = service.create("B", "guest", at(0, day=2).astimezone(UTC), at(1, day=2).astimezone(UTC))
+    service.create("B", "guest", at(0, day=3).astimezone(UTC), at(1, day=3).astimezone(UTC))
+    assert service.list(on_date=at(0, day=2).date()) == [first, last]
+
+
+def test_list_date_and_room_filters_are_combined_and_sorted(service: BookingService) -> None:
+    late = service.create("A", "miruky", at(15), at(16))
+    early = service.create("A", "miruky", at(9), at(10))
+    service.create("B", "guest", at(9), at(10))
+    service.create("A", "miruky", at(9, day=2), at(10, day=2))
+    assert service.list("A", on_date=at(0).date()) == [early, late]
+
+
+def test_list_without_date_includes_all_days(service: BookingService) -> None:
+    later = service.create("A", "miruky", at(9, day=2), at(10, day=2))
+    earlier = service.create("A", "miruky", at(9), at(10))
+    assert service.list() == [earlier, later]
+
+
+def test_list_date_without_matches_returns_empty(service: BookingService) -> None:
+    service.create("A", "miruky", at(9), at(10))
+    assert service.list(on_date=at(0, day=2).date()) == []
+
+
+def test_list_date_includes_past_bookings(service: BookingService, clock: FixedClock) -> None:
+    booking = service.create("A", "miruky", at(9), at(10))
+    clock.moment = at(8, day=3)
+    assert service.list(on_date=at(0).date()) == [booking]

@@ -59,3 +59,40 @@ def test_stats_prints_owner_and_hours(capsys: pytest.CaptureFixture[str]) -> Non
     capsys.readouterr()
     assert run("stats") == 0
     assert capsys.readouterr().out.splitlines() == ["miruky 3.75h", "aoi 1.0h"]
+
+
+def test_list_date_and_room_show_only_matching_booking(capsys: pytest.CaptureFixture[str]) -> None:
+    for room, start, end in (
+        ("A", "2026-12-01T15:00+00:00", "2026-12-01T16:00+00:00"),
+        ("B", "2026-12-02T10:00", "2026-12-02T11:00"),
+        ("A", "2026-12-03T10:00", "2026-12-03T11:00"),
+    ):
+        assert run("add", "--room", room, "--owner", "miruky", "--start", start, "--end", end) == 0
+    capsys.readouterr()
+    assert run("list", "--date", "2026-12-02", "--room", "A") == 0
+    output = capsys.readouterr()
+    assert len(output.out.splitlines()) == 1
+    assert "A  2026-12-02 00:00-01:00  miruky" in output.out
+    assert output.err == ""
+
+
+@pytest.mark.parametrize("day", ["2026-12-02", "2028-02-29"])
+def test_list_date_without_matches_prints_nothing(
+    day: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert run("list", "--date", day) == 0
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert output.err == ""
+
+
+@pytest.mark.parametrize(
+    "day", ["2026-02-29", "2026-13-01", "2026-12-1", "20261201", "2026-W49-2", "invalid", ""]
+)
+def test_list_invalid_date_exits_with_1_and_explains(
+    day: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert run("list", "--date", day) == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "日付は YYYY-MM-DD 形式の実在する日付で指定してください" in output.err
