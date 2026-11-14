@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 from pathlib import Path
 
 import pytest
@@ -96,3 +98,94 @@ def test_list_invalid_date_exits_with_1_and_explains(
     output = capsys.readouterr()
     assert output.out == ""
     assert "日付は YYYY-MM-DD 形式の実在する日付で指定してください" in output.err
+
+
+EXPORT_HEADER = "id,room,owner,start,end"
+
+
+def export_lines(capsys: pytest.CaptureFixture[str], *options: str) -> list[str]:
+    capsys.readouterr()
+    assert run("export", "--format", "csv", *options) == 0
+    output = capsys.readouterr()
+    assert output.err == ""
+    return output.out.splitlines()
+
+
+def test_export_csv_prints_bookings_to_stdout(capsys: pytest.CaptureFixture[str]) -> None:
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    lines = export_lines(capsys)
+    assert len(lines) == 2
+    assert ",A,miruky," in lines[1]
+
+
+def test_export_csv_first_line_is_header_in_column_order(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    assert export_lines(capsys)[0] == EXPORT_HEADER
+
+
+def test_export_csv_writes_times_as_tokyo_iso8601(capsys: pytest.CaptureFixture[str]) -> None:
+    book("miruky", "A", "2026-12-01T01:00+00:00", "2026-12-01T02:00+00:00")
+    row = next(csv.reader(export_lines(capsys)[1:]))
+    assert row[3:] == ["2026-12-01T10:00:00+09:00", "2026-12-01T11:00:00+09:00"]
+
+
+def test_export_csv_is_sorted_by_start_then_room(capsys: pytest.CaptureFixture[str]) -> None:
+    book("miruky", "B", "2026-12-01T10:00", "2026-12-01T11:00")
+    book("miruky", "A", "2026-12-01T11:00", "2026-12-01T12:00")
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    rows = list(csv.reader(export_lines(capsys)[1:]))
+    assert [(row[1], row[3]) for row in rows] == [
+        ("A", "2026-12-01T10:00:00+09:00"),
+        ("B", "2026-12-01T10:00:00+09:00"),
+        ("A", "2026-12-01T11:00:00+09:00"),
+    ]
+
+
+def test_export_csv_room_option_keeps_only_that_room(capsys: pytest.CaptureFixture[str]) -> None:
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    book("aoi", "B", "2026-12-01T10:00", "2026-12-01T11:00")
+    rows = list(csv.reader(export_lines(capsys, "--room", "B")[1:]))
+    assert [(row[1], row[2]) for row in rows] == [("B", "aoi")]
+
+
+def test_export_csv_without_bookings_prints_only_header(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert export_lines(capsys) == [EXPORT_HEADER]
+
+
+def test_export_without_format_prints_same_as_csv(capsys: pytest.CaptureFixture[str]) -> None:
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    expected = export_lines(capsys)
+    assert run("export") == 0
+    output = capsys.readouterr()
+    assert output.err == ""
+    assert output.out.splitlines() == expected
+
+
+@pytest.mark.parametrize("fmt", ["json", "CSV", "tsv", ""])
+def test_export_unknown_format_exits_with_1_and_explains(
+    fmt: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    capsys.readouterr()
+    assert run("export", "--format", fmt) == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "csv を指定してください" in output.err
+
+
+@pytest.mark.parametrize("owner", ["山田, 太郎", "改行\nあり", '引用符"あり', "両方,\r\n混在"])
+def test_export_csv_keeps_columns_when_value_has_comma_or_newline(
+    owner: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    book(owner, "A,B", "2026-12-01T10:00", "2026-12-01T11:00")
+    capsys.readouterr()
+    assert run("export", "--format", "csv") == 0
+    rows = list(csv.reader(io.StringIO(capsys.readouterr().out)))
+    assert rows[0] == EXPORT_HEADER.split(",")
+    assert len(rows) == 2
+    assert rows[1][1:3] == ["A,B", owner]
+    assert len(rows[1]) == 5

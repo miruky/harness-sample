@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import os
 import sys
 from collections.abc import Sequence
@@ -19,6 +20,8 @@ from booking.storage.json_file import JsonFileRepository
 TOKYO = ZoneInfo("Asia/Tokyo")
 EXIT_OK = 0
 EXIT_REJECTED = 1
+EXPORT_FORMATS = ("csv",)
+CSV_COLUMNS = ("id", "room", "owner", "start", "end")
 
 
 class SystemClock:
@@ -56,6 +59,22 @@ def _format_total(total: OwnerTotal) -> str:
     return f"{total.owner} {hours}h"
 
 
+def _write_csv(bookings: Sequence[Booking]) -> None:
+    # カンマ、引用符、改行を含む値は csv モジュールが引用符で囲むので、列がずれない
+    writer = csv.writer(sys.stdout, lineterminator="\n")
+    writer.writerow(CSV_COLUMNS)
+    for booking in bookings:
+        writer.writerow(
+            (
+                booking.id,
+                booking.room,
+                booking.owner,
+                booking.time.start.astimezone(TOKYO).isoformat(timespec="seconds"),
+                booking.time.end.astimezone(TOKYO).isoformat(timespec="seconds"),
+            )
+        )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="booking", description="会議室を予約する")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -75,6 +94,12 @@ def _build_parser() -> argparse.ArgumentParser:
     cancel.add_argument("booking_id")
 
     sub.add_parser("stats", help="これから始まる予約の合計時間を予約者ごとに出す")
+
+    export = sub.add_parser("export", help="予約を標準出力へ書き出す")
+    export.add_argument(
+        "--format", default="csv", help="出力の形式。いまは csv だけ（省略すると csv）"
+    )
+    export.add_argument("--room")
     return parser
 
 
@@ -96,6 +121,12 @@ def main(argv: Sequence[str] | None = None, clock: Clock | None = None) -> int:
         elif args.command == "stats":
             for total in service.totals_by_owner():
                 print(_format_total(total))
+        elif args.command == "export":
+            if args.format not in EXPORT_FORMATS:
+                raise BookingError(
+                    f"形式 {args.format} には対応していません。csv を指定してください"
+                )
+            _write_csv(service.list(args.room))
     except BookingError as error:
         print(f"受け付けられません: {error}", file=sys.stderr)
         return EXIT_REJECTED
