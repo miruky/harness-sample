@@ -2,8 +2,9 @@
 
   uv run python tools/docs_sync.py push      # 変わったファイルだけ、ページを作るか更新する
   uv run python tools/docs_sync.py verify    # ページを全文取得して、ローカルと照らし合わせる
+  uv run python tools/docs_sync.py verify-body <ファイル> < 本文   # MCPで取得した本文を照合する
 
-正本はリポジトリの Markdown で、Confluence は写し。照合は2つ行う。
+元はリポジトリの Markdown で、Confluence は写し。照合は2つ行う。
   1. ページの末尾に書いた sha256 が、ローカルの Markdown の sha256 と同じか
   2. ページから取得した本文が、ローカルから作った本文と同じか（画面で編集されていないか）
 
@@ -80,9 +81,22 @@ def render(markdown: str, source: str) -> str:
 
 
 def plain(storage: str) -> str:
-    """タグと空白を除いた本文の文字。保存時に整形されても比べられるようにする。"""
-    text = re.sub(r"<[^>]+>", " ", storage)
-    return re.sub(r"\s+", "", html.unescape(text))
+    """APIで書いたページ（XHTML）から、タグ、記号、空白を除いた本文の文字。"""
+    return squeeze(html.unescape(re.sub(r"<[^>]+>", " ", storage)))
+
+
+def squeeze(text: str) -> str:
+    """Markdown の記号と空白を除いた文字。"""
+    return re.sub(r"[\s#*`\-]+", "", text)
+
+
+def markdown_body(markdown: str, source: str) -> str:
+    """MCPで書き込む本文。Markdown のまま、APIで書くページと同じ注意書きと sha256 を付ける。"""
+    return (
+        markdown.rstrip("\n")
+        + f"\n\nこのページは {source} から自動で書き込まれます。直接編集しないでください。"
+        + f"\n\n{MARK}: {source} sha256:{digest(markdown)}\n"
+    )
 
 
 def title_of(markdown: str, path: Path) -> str:
@@ -148,6 +162,34 @@ def push(wiki: Confluence) -> int:
     return 0
 
 
+def mismatch(markdown: str, source: str, remote: str) -> str:
+    """ページの本文がローカルと合わない理由。合っていれば空文字。APIでもMCPでも、照合はここを通す。"""
+    recorded = re.search(rf"{MARK}: \S+ sha256:([0-9a-f]{{64}})", plain_keep_space(remote))
+    if recorded is None or recorded.group(1) != digest(markdown):
+        return "の sha256 がローカルと違います（ページが古いままです）"
+    # MCPで書いたページは Markdown のまま保存される。山かっこをタグと取り違えないよう比べ方を変える
+    written_as_markdown = "<p>" not in remote
+    if written_as_markdown:
+        same = squeeze(remote) == squeeze(markdown_body(markdown, source))
+    else:
+        same = plain(remote) == plain(render(markdown, source))
+    if not same:
+        return "の本文がローカルと違います（画面で編集されています）"
+    return ""
+
+
+def verify_body(path: Path, remote: str) -> int:
+    markdown = path.read_text(encoding="utf-8")
+    source = str(path.resolve().relative_to(ROOT))
+    reason = mismatch(markdown, source, remote)
+    if reason:
+        print(f"{source}: ページ{reason}")
+        print("直し方: 元は docs/specs/ です。ページを書き直してから、もう一度照合してください。")
+        return 1
+    print(f"一致      {source} sha256:{digest(markdown)[:12]}")
+    return 0
+
+
 def verify(wiki: Confluence) -> int:
     problems = 0
     for path in targets():
@@ -161,20 +203,15 @@ def verify(wiki: Confluence) -> int:
             continue
         remote = page["body"]["storage"]["value"]
         number = page["version"]["number"]
-        recorded = re.search(rf"{MARK}: \S+ sha256:([0-9a-f]{{64}})", plain_keep_space(remote))
-        if recorded is None or recorded.group(1) != digest(markdown):
-            print(f"{source}: ページの sha256 がローカルと違います（ページが古いままです）")
-            problems += 1
-        elif plain(remote) != plain(render(markdown, source)):
-            print(
-                f"{source}: ページ「{title}」の本文がローカルと違います（画面で編集されています）"
-            )
+        reason = mismatch(markdown, source, remote)
+        if reason:
+            print(f"{source}: ページ「{title}」{reason}")
             problems += 1
         else:
             print(f"一致      {source} = 「{title}」 v{number} sha256:{digest(markdown)[:12]}")
     if problems:
         print(f"\n{problems} 件が一致しません。")
-        print("直し方: 正本は docs/specs/ です。make docs-push で書き直してください。")
+        print("直し方: 元は docs/specs/ です。make docs-push で書き直してください。")
         print("画面で直した内容を残すときは、先に Markdown へ写してコミットします。")
     return 1 if problems else 0
 
@@ -185,6 +222,8 @@ def plain_keep_space(storage: str) -> str:
 
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
+    if command == "verify-body" and len(sys.argv) == 3:
+        return verify_body(Path(sys.argv[2]), sys.stdin.read())
     if command not in ("push", "verify"):
         print(__doc__)
         return 2

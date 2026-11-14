@@ -128,3 +128,25 @@ def test_stop_hook_tells_an_english_report_from_a_japanese_one() -> None:
     assert not hook.written_in_japanese(english)  # type: ignore[attr-defined]
     assert hook.written_in_japanese(japanese)  # type: ignore[attr-defined]
     assert hook.written_in_japanese("ok")  # type: ignore[attr-defined]
+
+
+def test_stop_hook_lists_specs_that_changed_after_the_last_sync(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import hashlib
+
+    stop = load_hook("verify_before_stop")
+    specs = tmp_path / "docs" / "specs"
+    specs.mkdir(parents=True)
+    spec = specs / "0001-export.md"
+    spec.write_text("# 予約のCSV出力\n", encoding="utf-8")
+    monkeypatch.setattr(stop, "PROJECT", tmp_path)
+    # 台帳がなければ、同期を使っていないので何も言わない
+    assert stop.unsynced_specs() == []  # type: ignore[attr-defined]
+    synced = hashlib.sha256(spec.read_bytes()).hexdigest()
+    (specs / ".sync.json").write_text(
+        json.dumps({"docs/specs/0001-export.md": {"sha256": synced}}), encoding="utf-8"
+    )
+    assert stop.unsynced_specs() == []  # type: ignore[attr-defined]
+    spec.write_text("# 予約のCSV出力\n\n- 1行足した\n", encoding="utf-8")
+    assert stop.unsynced_specs() == ["docs/specs/0001-export.md"]  # type: ignore[attr-defined]

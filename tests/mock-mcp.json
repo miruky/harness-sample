@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "atlassian": { "command": "python3", "args": ["tests/mock_confluence_mcp.py"] }
+  }
+}
