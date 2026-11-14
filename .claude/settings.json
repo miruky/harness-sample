@@ -35,6 +35,11 @@
         "~/.cache/uv",
         "~/Library/Caches/uv"
       ],
+      "denyWrite": [
+        "./.agents/hooks",
+        "./.github/workflows",
+        "./.codex"
+      ],
       "denyRead": [
         "./.env",
         "./.env.local",
