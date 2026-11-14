@@ -22,6 +22,8 @@ dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13"]
 line-length = 100
 target-version = "py312"
 src = ["src", "tests", "tools"]
+# 受け入れテストは、エージェントから開けない場所として扱う（.claude/settings.json の denyRead）
+extend-exclude = ["evals/tasks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "T20"]

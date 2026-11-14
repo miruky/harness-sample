@@ -6,7 +6,7 @@
 3. 変更があれば、整形してから make check が通るか
 
 整形と、自動で直せるリントの修正は黙って済ませる。モデルに頼まなくても機械で決まるため。
-直らないまま回り続けないよう、同じセッションで続けて止めるのは3回までにする。
+直らないまま回り続けないよう、1回の依頼の中で続けて止めるのは3回までにする。
 3回止めても通らなければ、そのまま終わらせて人に判断を渡す。
 """
 
@@ -42,7 +42,9 @@ def human_owned_changes(status: str) -> list[str]:
 def main() -> None:
     event = read_input()
     state_file = PROJECT / ".harness" / "logs" / f"stop-{event.get('session_id', 'unknown')}.json"
-    blocks = json.loads(state_file.read_text())["blocks"] if state_file.exists() else 0
+    # 止めた回数は、1回の依頼の中だけで数える。stop_hook_active が偽なら、新しい依頼の最初の終了
+    resumed = bool(event.get("stop_hook_active"))
+    blocks = json.loads(state_file.read_text())["blocks"] if resumed and state_file.exists() else 0
 
     def stop(message: str) -> None:
         state_file.parent.mkdir(parents=True, exist_ok=True)
