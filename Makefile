@@ -1,6 +1,9 @@
 # 人もエージェントもCIも、確認はこの1本を通す
 .PHONY: setup check format lint types layers test
 
+# uv のキャッシュを作業フォルダの中に置く。エージェントのサンドボックスの中からも同じコマンドが動く
+export UV_CACHE_DIR ?= .uv-cache
+
 setup:
 	uv sync
 

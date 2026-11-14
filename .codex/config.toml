@@ -6,3 +6,7 @@ approval_policy = "on-request"
 [sandbox_workspace_write]
 # 依存の取得など、外との通信が要る作業は人が行う
 network_access = false
+
+[shell_environment_policy]
+# uv のキャッシュを作業フォルダの中に置く。サンドボックスは、ホームのキャッシュへ書き込めないため
+set = { UV_CACHE_DIR = ".uv-cache" }
