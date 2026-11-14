@@ -24,7 +24,8 @@ AIのコーディングエージェントが働くためのハーネス一式を
 | `docs/architecture.md`、`docs/decisions/` | 構成と、設計の判断の理由 | 人、エージェント |
 | `docs/plans/` | 長い作業の計画と進み具合 | 人、エージェント |
 | `docs/specs/` | 機能の仕様。ここが正本で、Confluence は写し | 人、エージェント |
-| `tools/docs_sync.py`、`.github/workflows/docs-sync.yml` | 仕様を Confluence へ書き込み、全文と sha256 で一致を確かめる | CI |
+| `tools/docs_sync.py`、`.github/workflows/docs-sync.yml` | push のたびに仕様を Confluence へAPIで書き込み、全文と sha256 で一致を確かめる | CI |
+| `.mcp.json`、`.agents/skills/sync-specs/`、`tools/specs_sync.py` | APIが届かない環境で、MCPのツールから書き込む手順と台帳。書いたあとは同じ照合を通す | Claude Code |
 | `tools/check_tests_bite.py` | 決まりをわざと書き換えて、テストが気づくかを確かめる | 人 |
 | `tools/loop.sh` | 完了の条件のコマンドが通るまで、依頼を渡し直す | 人 |
 | `docs/harness-log.md` | 失敗をハーネスへ戻した記録 | 人 |
@@ -80,7 +81,7 @@ Claude で満たせなかった回のほとんどは、日本語の依頼に英�
 
 - Claude Code 2.1.321（Claude Opus 5.5）と Codex CLI 0.166.0（GPT-6 Astra）で、指示ファイル、スキル、フックが働くことを確かめました。
 - Cursor と GitHub Copilot は `AGENTS.md` を読み込みますが、このリポジトリでは実機で確かめていません。
-- Confluence への書き込みと照合は、REST API をまねたテスト用のサーバー（`tests/fake_confluence.py`）で確かめました。実際の Confluence では確かめていません。
+- Confluence への書き込みと照合は、REST API をまねたテスト用のサーバー（`tests/fake_confluence.py`）と、Atlassian のMCPサーバーと同じ名前のツールを持つ模擬のサーバー（`tests/mock_confluence_mcp.py`）で確かめました。実際の Confluence では確かめていません。
 
 ## ライセンス
 
