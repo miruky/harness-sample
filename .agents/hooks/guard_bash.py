@@ -20,8 +20,6 @@ RULES: list[tuple[str, str]] = [
      "作業中の変更を捨てるコマンドは実行しません。戻したいファイルを個別に指定してください。"),
     (r"(^|[\s;&|(])(cat|less|head|tail|grep|sed|awk|cp|mv|source|\.)\s[^;&|]*\.env(?!\.example)(\.[\w-]+)?(\s|$)",
      ".env は読みません。必要な設定の名前は .env.example にあります。"),
-    (r"bookings\.json",
-     "bookings.json は実データです。動作を確かめるときは BOOKING_DB で一時ファイルを指定してください。"),
     (r"\b(curl|wget)\b[^|;]*\|\s*(ba|z)?sh\b",
      "取得したスクリプトをそのまま実行しません。"),
     (r"\bsudo\b",

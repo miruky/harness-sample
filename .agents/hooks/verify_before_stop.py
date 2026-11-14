@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Stop: 変更があるのに全検査が通っていなければ、終わらせずに結果を返す。
+"""Stop: 変更があれば、整形してから全検査を走らせる。通っていなければ、終わらせずに結果を返す。
 
+整形と、自動で直せるリントの修正は黙って済ませる。モデルに頼まなくても機械で決まるため。
 直らないまま回り続けないよう、同じセッションで続けて止めるのは3回までにする。
 3回止めても通らなければ、そのまま終わらせて人に判断を渡す。
 """
@@ -26,6 +27,7 @@ def main() -> None:
     state_file = PROJECT / ".harness" / "logs" / f"stop-{event.get('session_id', 'unknown')}.json"
     blocks = json.loads(state_file.read_text())["blocks"] if state_file.exists() else 0
 
+    subprocess.run(["make", "format"], cwd=PROJECT, capture_output=True, text=True, timeout=120)
     check = subprocess.run(
         ["make", "check"], cwd=PROJECT, capture_output=True, text=True, timeout=300
     )
