@@ -5,17 +5,19 @@ description: docs/specs/ の仕様を Confluence へ書き込み、写しが一�
 
 # 仕様を Confluence へ書き込み、一致を確かめる
 
-元は `docs/specs/` の Markdown で、Confluence は写し。ページの取得と書き込みはMCPのツール（atlassian）で行う。
-ページの全文を取得すると、その文字が全部コンテキストに入る。取得は、下の順で必要になったときだけ行う。
+元は `docs/specs/` の Markdown で、Confluence は写し。ふだんは push のたびにCIが `tools/docs_sync.py` で書き込む。
+このスキルは、APIが届かない環境で、同じことをMCPのツール（atlassian）で行うための手順。
+ページの全文を取得すると、その文字が全部コンテキストに入る。取得は、必要になったページだけにする。
 
 ## 書き込む
 
 1. `uv run python tools/specs_sync.py status` を実行する。挙がったファイルだけが対象。0件ならここで終わる。
 2. 対象のファイルごとに `uv run python tools/specs_sync.py payload <ファイル>` を実行し、出力をそのまま本文にする。自分で書き直さない。
 3. 台帳（`docs/specs/` の `.sync.json`）にページIDがあれば `updateConfluenceContent`、なければ `createConfluenceContent` で書き込む。題名は Markdown の1行目の見出し。ページを探すための検索はしない。
-4. 返ってきたページIDと版を `uv run python tools/specs_sync.py record <ファイル> <ページID> <版>` で記録する。
+4. 書き込んだページだけを `getConfluenceContent` で取得し、本文を `uv run python tools/docs_sync.py verify-body <ファイル>` の標準入力へ渡す。APIで書いたときと同じ照合（sha256 と全文）で、「一致」と出ることを確かめる。出なければ書き込み直す。
+5. 一致したら、ページIDと版を `uv run python tools/specs_sync.py record <ファイル> <ページID> <版>` で記録する。
 
-## 一致を確かめる
+## 書き込んでいないページの一致を確かめる
 
 1. `listConfluenceContentVersions` で、ページのいちばん新しい版の番号だけを取得する。本文は取得しない。
 2. `uv run python tools/specs_sync.py check <ファイル> <版>` を実行する。「一致」と出たら、そのファイルは終わり。
@@ -27,3 +29,4 @@ description: docs/specs/ の仕様を Confluence へ書き込み、写しが一�
 - 確認のために、全ページを `getConfluenceContent` で取得する
 - 台帳と一致しているファイルを書き込み直す
 - `payload` の出力を要約したり、整形し直したりしてから書き込む
+- 照合を通さずに、台帳へ記録する

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from tools import specs_sync
+from tools import docs_sync, specs_sync
 
 
 @pytest.fixture
@@ -50,3 +50,13 @@ def test_payload_ends_with_hash_of_the_markdown(
     specs_sync.payload(spec)
     out = capsys.readouterr().out
     assert f"sha256:{specs_sync.digest(spec.read_text(encoding='utf-8'))}" in out
+
+
+def test_page_written_through_mcp_passes_the_same_check_as_the_api(
+    spec: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(docs_sync, "ROOT", specs_sync.ROOT)
+    specs_sync.payload(spec)
+    body = capsys.readouterr().out
+    assert docs_sync.verify_body(spec, body) == 0
+    assert docs_sync.verify_body(spec, body.replace("room", "user")) == 1

@@ -1,6 +1,7 @@
 """docs/specs/ の仕様と、Confluence の写しの対応を、手元の台帳で管理する。
 
-Confluence への書き込みと取得は、エージェントがMCPのツールで行う。このスクリプトは外へ通信せず、
+APIが届かない環境では、Confluence への書き込みと取得をエージェントがMCPのツールで行う。
+このスクリプトは外へ通信せず、
 「どのファイルを書き込む必要があるか」「ページの本文を取得する必要があるか」を、台帳だけで答える。
 モデルにページの全文を取得させる回数を減らすのが目的。
 
@@ -22,7 +23,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SPECS = ROOT / "docs" / "specs"
 LEDGER = SPECS / ".sync.json"
-MARK = "specs-sync"
 
 
 def digest(text: str) -> str:
@@ -67,11 +67,14 @@ def status() -> int:
 
 
 def payload(path: Path) -> int:
+    """MCPで書き込む本文。APIで書き込むページと同じ注意書きと sha256 を末尾に付ける。"""
     text = path.read_text(encoding="utf-8")
+    source = name_of(path)
     print(text.rstrip("\n"))
     print()
-    print(f"{MARK}: {name_of(path)} sha256:{digest(text)}")
-    print("このページは自動で書き込まれます。直接編集しないでください。")
+    print(f"このページは {source} から自動で書き込まれます。直接編集しないでください。")
+    print()
+    print(f"docs-sync: {source} sha256:{digest(text)}")
     return 0
 
 
