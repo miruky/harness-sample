@@ -35,10 +35,10 @@ def main(argv: list[str] | None = None) -> int:
         if entry["outcome"] == "block":
             reasons[f"{entry['hook']}: {entry['detail'].splitlines()[0][:60]}"] += 1
     print(f"セッション {len(sessions)} 件、フックの実行 {len(entries)} 回\n")
-    print(f"{'フック':<22}{'実行':>6}{'止めた':>6}{'諦めた':>6}")
+    print(f"{'hook':<22}{'実行':>5}{'止めた':>6}{'諦めた':>6}")
     for hook, counts in sorted(by_hook.items()):
         total = sum(counts.values())
-        print(f"{hook:<24}{total:>6}{counts['block']:>8}{counts['give_up']:>8}")
+        print(f"{hook:<22}{total:>7}{counts['block']:>9}{counts['give_up']:>9}")
     if reasons:
         print("\n止めた理由（多い順）")
         for reason, count in reasons.most_common(10):

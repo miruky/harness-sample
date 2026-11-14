@@ -40,7 +40,9 @@ def main(prefixes: list[str]) -> int:
         for record in records:
             failed = [c for c in CHECKS if not record.get(c)]
             if failed:
-                print(f"    {record['task']:<16} {', '.join(failed)}  ({record['workdir']})")
+                print(
+                    f"    {record['task']:<16} {', '.join(failed)}  ({record.get('workdir', '')})"
+                )
     return 0
 
 

@@ -15,7 +15,7 @@ AIのコーディングエージェントが働くためのハーネス一式を
 | `.agents/skills/` | 手順書（スキル）。`.claude/skills` はここへのリンク | Claude Code、Codex |
 | `.claude/agents/`、`.codex/agents/` | 変更を別の文脈で見直すレビュー役 | Claude Code、Codex |
 | `.agents/hooks/` | 実行前に止める、編集後に検査する、終了前に確かめるフック | Claude Code、Codex |
-| `.claude/settings.json` | 権限（allow、ask、deny）、フックの登録、返答の言語 | Claude Code |
+| `.claude/settings.json` | 権限（allow、ask、deny）、サンドボックス、フックの登録、返答の言語 | Claude Code |
 | `.codex/config.toml`、`.codex/hooks.json` | サンドボックスと承認の既定、フックの登録 | Codex |
 | `Makefile`、`tools/check_layers.py` | 整形、リント、型、層の向き、テストを1本で確かめる | 人、エージェント、CI |
 | `tools/check_harness.py` | 指示ファイルや設定が古くなっていないかの検査 | CI |
@@ -53,15 +53,19 @@ Codex のフックは、初回に `/hooks` で内容を確かめて信頼する�
 ## 育てた順番
 
 ハーネスは一度に作らず、エージェントを走らせて起きたことを1件ずつ戻しました。各時点はタグで残してあります。
+右の2列は、同じ5つの課題を3回ずつ解かせた15回のうち、11の採点項目をすべて満たした回数です。
 
-| タグ | 足したもの |
-|:--|:--|
-| `stage-0` | 予約CLI、テスト、ruff、mypy だけ |
-| `stage-1` | `AGENTS.md` と `docs/` |
-| `stage-2` | 検査（`make check`、層の向き）、フック、権限の設定、CI |
-| `stage-3` | スキル、場所ごとのルール、レビュー役、Codex の設定、評価 |
+| タグ | 足したもの | Haiku 5.5 | Opus 5.5（high） |
+|:--|:--|--:|--:|
+| `stage-0` | 予約CLI、テスト、ruff、mypy だけ | 6 | 13 |
+| `stage-1` | `AGENTS.md` と `docs/` | 8 | 14 |
+| `stage-2a` | 検査（`make check`、層の向き）、フック、権限の設定、CI | 8 | 測っていない |
+| `stage-2` | フックを軽くし、返答の言語を設定に移した | 12 | 15 |
+| `stage-3` | スキル、場所ごとのルール、レビュー役、Codex の設定、評価 | 12 | 15 |
+| `stage-4` | 対話で見つけた穴をふさぎ、報告の言語をフックで確かめる | 15 | 15 |
 
-経緯は `docs/harness-log.md`、各時点で同じ課題を解かせた結果は `evals/results/` にあります。
+満たせなかった回のほとんどは、日本語の依頼に英語で報告した回です。経緯は `docs/harness-log.md`、元の記録は `evals/results/` にあります。
+ハーネスを足すと1回あたりの時間と費用は増えます。Opus 5.5 では、`stage-0` の平均76秒が `stage-4` で163秒になりました。
 
 ## 動作を確かめた範囲
 
