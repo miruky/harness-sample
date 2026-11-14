@@ -20,6 +20,12 @@ uv run pytest tests/test_service.py -k 名前  # テストを1件だけ
 - 現在時刻は `Clock` から受け取る。`datetime.now()` を呼んでよいのは `src/booking/cli.py` だけ。
 - 層の向きは domain → service → storage / cli。内側から外側を import しない（`tools/check_layers.py` が検査する）。
 
+## 進め方
+
+- 決まった手順のある作業は、`.agents/skills/` のスキルに従う。
+- 実装が終わって `make check` が通ったら、コミットの前にレビュー役（reviewer）へ見直しを頼む。
+- 数時間かかる作業は、先に `docs/plans/` へ計画を書く。
+
 ## 触らないもの
 
 - `.env` は開かない。設定の名前は `.env.example` にある。
@@ -31,3 +37,4 @@ uv run pytest tests/test_service.py -k 名前  # テストを1件だけ
 
 - 構成と層の向き: `docs/architecture.md`
 - 設計の判断と理由: `docs/decisions/`
+- このファイルや設定を変えた経緯: `docs/harness-log.md`

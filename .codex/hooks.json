@@ -1,0 +1,42 @@
+{
+  "description": "Claude Code と同じスクリプト（.agents/hooks/）を、同じ時点で呼ぶ",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/session_context.py\"" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/guard_bash.py\"", "statusMessage": "コマンドを確認しています" }
+        ]
+      },
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/protect_files.py\"" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/check_edit.py\"", "timeout": 120 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/verify_before_stop.py\"", "timeout": 300 }
+        ]
+      }
+    ]
+  }
+}

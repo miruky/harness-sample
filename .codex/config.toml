@@ -1,0 +1,8 @@
+# このリポジトリで Codex を動かすときの既定
+# 書き込めるのは作業フォルダの中だけ。外へ出る操作は、そのつど人に確認する
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[sandbox_workspace_write]
+# 依存の取得など、外との通信が要る作業は人が行う
+network_access = false
