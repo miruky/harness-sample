@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+bookings.json
+.env
+.env.*
+!.env.example
+# 個人ごとの設定とログは共有しない
+.claude/settings.local.json
+CLAUDE.local.md
+.harness/logs/
+.DS_Store

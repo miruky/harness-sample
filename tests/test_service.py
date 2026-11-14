@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+import pytest
+
+from booking.domain.errors import (
+    BookingNotFoundError,
+    OverlapError,
+    PastBookingError,
+    SlotAlignmentError,
+    TooLongError,
+)
+from booking.service.booking_service import BookingService
+from tests.conftest import at
+
+
+def test_create_returns_saved_booking(service: BookingService) -> None:
+    booking = service.create("A", "miruky", at(10), at(11), "定例")
+    assert booking.id == "b001"
+    assert service.list() == [booking]
+
+
+def test_same_room_overlap_is_rejected(service: BookingService) -> None:
+    service.create("A", "miruky", at(10), at(11))
+    with pytest.raises(OverlapError) as caught:
+        service.create("A", "guest", at(10, 30), at(11, 30))
+    assert caught.value.conflict_id == "b001"
+
+
+def test_other_room_can_share_the_same_time(service: BookingService) -> None:
+    service.create("A", "miruky", at(10), at(11))
+    assert service.create("B", "guest", at(10), at(11)).room == "B"
+
+
+def test_back_to_back_bookings_are_accepted(service: BookingService) -> None:
+    service.create("A", "miruky", at(10), at(11))
+    assert service.create("A", "guest", at(11), at(12)).id == "b002"
+
+
+def test_start_must_be_on_a_15_minute_slot(service: BookingService) -> None:
+    with pytest.raises(SlotAlignmentError):
+        service.create("A", "miruky", at(10, 10), at(11))
+
+
+def test_longer_than_four_hours_is_rejected(service: BookingService) -> None:
+    with pytest.raises(TooLongError):
+        service.create("A", "miruky", at(9), at(13, 15))
+
+
+def test_past_start_is_rejected(service: BookingService) -> None:
+    with pytest.raises(PastBookingError):
+        service.create("A", "miruky", at(7), at(8))
+
+
+def test_cancel_frees_the_slot(service: BookingService) -> None:
+    booking = service.create("A", "miruky", at(10), at(11))
+    service.cancel(booking.id)
+    assert service.list() == []
+    assert service.create("A", "guest", at(10), at(11)).owner == "guest"
+
+
+def test_cancel_unknown_id_fails(service: BookingService) -> None:
+    with pytest.raises(BookingNotFoundError):
+        service.cancel("nope")
+
+
+def test_list_is_sorted_by_start_and_filtered_by_room(service: BookingService) -> None:
+    late = service.create("A", "miruky", at(15), at(16))
+    early = service.create("A", "miruky", at(9), at(10))
+    service.create("B", "guest", at(9), at(10))
+    assert service.list("A") == [early, late]
