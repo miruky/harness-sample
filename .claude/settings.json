@@ -13,7 +13,12 @@
       "Bash(git diff *)",
       "Bash(git log *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "mcp__atlassian__listConfluenceContentVersions",
+      "mcp__atlassian__diffConfluenceContentVersions",
+      "mcp__atlassian__getConfluenceContent",
+      "mcp__atlassian__createConfluenceContent",
+      "mcp__atlassian__updateConfluenceContent"
     ],
     "ask": [
       "Bash(uv add *)",
