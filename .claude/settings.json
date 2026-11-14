@@ -49,6 +49,7 @@
     "network": {
       "allowLocalBinding": true,
       "allowedDomains": [
+        "mcp.atlassian.com",
         "pypi.org",
         "files.pythonhosted.org"
       ]

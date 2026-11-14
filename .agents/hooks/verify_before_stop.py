@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Stop: 終わる前に3つ確かめる。通っていなければ、終わらせずに理由を返す。
+"""Stop: 終わる前に4つ確かめる。通っていなければ、終わらせずに理由を返す。
 
 1. 最後の報告が日本語か。指示ファイルと設定に書いても英語の報告が残ったので、ここで確かめる
 2. 人が確かめてから変えるファイルが、書き換わっていないか
-3. 変更があれば、整形してから make check が通るか
+3. 仕様を変えたのに、Confluence の写しへ書き込んでいないものがないか（同期を使っているときだけ）
+4. 変更があれば、整形してから make check が通るか
 
 整形と、自動で直せるリントの修正は黙って済ませる。モデルに頼まなくても機械で決まるため。
 直らないまま回り続けないよう、1回の依頼の中で続けて止めるのは3回までにする。
@@ -12,6 +13,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 
@@ -37,6 +39,22 @@ def human_owned_changes(status: str) -> list[str]:
     if "uv.lock" in paths and "pyproject.toml" not in paths:
         changed.append("uv.lock")
     return changed
+
+
+def unsynced_specs() -> list[str]:
+    """台帳がある（Confluence との同期を使っている）ときだけ、未反映の仕様を挙げる。"""
+    ledger_file = PROJECT / "docs" / "specs" / ".sync.json"
+    if not ledger_file.exists():
+        return []
+    ledger = json.loads(ledger_file.read_text(encoding="utf-8"))
+    names = []
+    for path in sorted((PROJECT / "docs" / "specs").glob("*.md")):
+        name = f"docs/specs/{path.name}"
+        if path.name == "README.md":
+            continue
+        if ledger.get(name, {}).get("sha256") != hashlib.sha256(path.read_bytes()).hexdigest():
+            names.append(name)
+    return names
 
 
 def main() -> None:
@@ -67,6 +85,14 @@ def main() -> None:
             "人が確かめてから変えるファイルが書き換わっています: "
             + ", ".join(owned)
             + "\n人から頼まれた変更でなければ git checkout で元に戻し、変えたい内容を返答に書いてください。"
+        )
+
+    specs = unsynced_specs()
+    if specs and blocks < MAX_BLOCKS:
+        stop(
+            "仕様が Confluence に反映されていません: "
+            + ", ".join(specs)
+            + "\n/sync-specs の手順で書き込み、台帳に記録してから終えてください。"
         )
 
     subprocess.run(["make", "format"], cwd=PROJECT, capture_output=True, text=True, timeout=120)
