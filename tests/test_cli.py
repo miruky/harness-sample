@@ -156,6 +156,15 @@ def test_export_csv_without_bookings_prints_only_header(
     assert export_lines(capsys) == [EXPORT_HEADER]
 
 
+def test_export_without_format_prints_same_as_csv(capsys: pytest.CaptureFixture[str]) -> None:
+    book("miruky", "A", "2026-12-01T10:00", "2026-12-01T11:00")
+    expected = export_lines(capsys)
+    assert run("export") == 0
+    output = capsys.readouterr()
+    assert output.err == ""
+    assert output.out.splitlines() == expected
+
+
 @pytest.mark.parametrize("fmt", ["json", "CSV", "tsv", ""])
 def test_export_unknown_format_exits_with_1_and_explains(
     fmt: str, capsys: pytest.CaptureFixture[str]

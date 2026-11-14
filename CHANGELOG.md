@@ -4,7 +4,7 @@
 
 ## 未リリース
 
-- `booking export --format csv` で、予約を開始の早い順にCSVで標準出力へ書き出せるようにした（`--room` で部屋を絞れる）
+- `booking export --format csv` で、予約を開始の早い順にCSVで標準出力へ書き出せるようにした（`--room` で部屋を絞れる。`--format` を省略すると csv）
 - `booking list --date YYYY-MM-DD` で、東京時間の指定日に始まる予約を絞り込めるようにした
 - `stats` コマンドを追加。これから始まる予約の合計時間を予約者ごとに多い順で表示する
 

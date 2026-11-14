@@ -96,7 +96,9 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("stats", help="これから始まる予約の合計時間を予約者ごとに出す")
 
     export = sub.add_parser("export", help="予約を標準出力へ書き出す")
-    export.add_argument("--format", required=True, help="出力の形式。いまは csv だけ")
+    export.add_argument(
+        "--format", default="csv", help="出力の形式。いまは csv だけ（省略すると csv）"
+    )
     export.add_argument("--room")
     return parser
 

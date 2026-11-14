@@ -39,7 +39,7 @@ uv run booking list
 uv run booking list --date 2026-12-01 # 東京時間でこの日に始まる予約（--room A と併用可）
 uv run booking cancel <予約ID>
 uv run booking stats    # これから始まる予約の合計時間を予約者ごとに、多い順で出す（例 miruky 3.5h）
-uv run booking export --format csv > bookings.csv  # 予約をCSVで書き出す（--room A で部屋を絞れる）
+uv run booking export --format csv > bookings.csv  # 予約をCSVで書き出す（--room A で部屋を絞れる。--format は省略すると csv）
 ```
 
 予約は `bookings.json` に保存されます。保存先は環境変数 `BOOKING_DB` で変えられます。
