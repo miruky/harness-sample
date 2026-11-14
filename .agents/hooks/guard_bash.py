@@ -20,6 +20,8 @@ RULES: list[tuple[str, str]] = [
      "作業中の変更を捨てるコマンドは実行しません。戻したいファイルを個別に指定してください。"),
     (r"(^|[\s;&|(])(cat|less|head|tail|grep|sed|awk|cp|mv|source|\.)\s[^;&|]*\.env(?!\.example)(\.[\w-]+)?(\s|$)",
      ".env は読みません。必要な設定の名前は .env.example にあります。"),
+    (r"evals/tasks/|acceptance_\w+\.py",
+     "評価用の受け入れテストは開きません。仕様は依頼文から決め、テストは tests/ に自分で書いてください。"),
     (r"\b(curl|wget)\b[^|;]*\|\s*(ba|z)?sh\b",
      "取得したスクリプトをそのまま実行しません。"),
     (r"\bsudo\b",
