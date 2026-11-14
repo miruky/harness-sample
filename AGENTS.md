@@ -25,6 +25,7 @@ uv run pytest tests/test_service.py -k 名前  # テストを1件だけ
 - 決まった手順のある作業は、`.agents/skills/` のスキルに従う。
 - 実装が終わって `make check` が通ったら、コミットの前にレビュー役（reviewer）へ見直しを頼む。
 - 数時間かかる作業は、先に `docs/plans/` へ計画を書く。
+- 機能を足すときは、`docs/specs/` の仕様から始める。仕様が正本で、Confluence は写し。
 
 ## 触らないもの
 
@@ -37,4 +38,5 @@ uv run pytest tests/test_service.py -k 名前  # テストを1件だけ
 
 - 構成と層の向き: `docs/architecture.md`
 - 設計の判断と理由: `docs/decisions/`
+- 機能の仕様: `docs/specs/`
 - このファイルや設定を変えた経緯: `docs/harness-log.md`
