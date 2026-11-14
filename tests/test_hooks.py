@@ -88,3 +88,27 @@ def test_every_decision_is_logged(tmp_path: Path) -> None:
     run_hook("guard_bash.py", bash("make check"), tmp_path)
     lines = (tmp_path / ".harness/logs/hooks.jsonl").read_text().splitlines()
     assert [json.loads(line)["outcome"] for line in lines] == ["block", "pass"]
+
+
+def load_hook(name: str) -> object:
+    """フックのスクリプトを、関数を直接呼べるように読み込む。"""
+    import importlib.util
+
+    sys.path.insert(0, str(HOOKS.resolve()))
+    spec = importlib.util.spec_from_file_location(name, HOOKS / f"{name}.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_stop_hook_notices_human_owned_files_changed_through_the_shell() -> None:
+    hook = load_hook("verify_before_stop")
+    status = " M .agents/hooks/guard_bash.py\n M src/booking/cli.py\n M uv.lock\n"
+    assert hook.human_owned_changes(status) == [".agents/hooks/guard_bash.py", "uv.lock"]  # type: ignore[attr-defined]
+
+
+def test_stop_hook_accepts_a_lockfile_changed_together_with_pyproject() -> None:
+    hook = load_hook("verify_before_stop")
+    status = " M pyproject.toml\n M uv.lock\n"
+    assert hook.human_owned_changes(status) == []  # type: ignore[attr-defined]

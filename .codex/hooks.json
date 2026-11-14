@@ -25,7 +25,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "apply_patch|Edit|Write",
+        "matcher": "apply_patch|Edit|Write|Bash",
         "hooks": [
           { "type": "command", "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/check_edit.py\"", "timeout": 120 }
         ]

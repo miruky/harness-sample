@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""PostToolUse（Edit、Write、apply_patch）: src/ の Python ファイルを編集したら、層の向きだけをその場で確かめる。
+"""PostToolUse（Edit、Write、Bash、apply_patch）: src/ の Python ファイルが変わっていたら、層の向きをその場で確かめる。
 
-整形とリントはここでは行わない。import を足す前の書きかけの状態に反応して作業を何度も止め、
-整形でファイルが書き換わると次の編集がやり直しになったため（docs/harness-log.md）。
-整形とリントは、終了前のフック（verify_before_stop.py）が受け持つ。
+編集ツールだけを見張っても足りない。エージェントはシェルのコマンドでもファイルを書き換えるので、
+Bash のあとにも、変更されたファイルを git から拾って確かめる（docs/harness-log.md）。
+整形とリントはここでは行わず、終了前のフック（verify_before_stop.py）が受け持つ。
 """
 
 from __future__ import annotations
@@ -17,15 +17,18 @@ def run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, cwd=PROJECT, capture_output=True, text=True, timeout=60)
 
 
+def changed_sources() -> list[str]:
+    """コミットしていない変更のうち、src/ の Python ファイル。"""
+    done = run("git", "status", "--porcelain", "--", "src")
+    return [line[3:] for line in done.stdout.splitlines() if line.endswith(".py")]
+
+
 def main() -> None:
     event = read_input()
-    targets = [
-        relative
-        for relative in edited_paths(event)
-        if relative.endswith(".py")
-        and relative.startswith("src/")
-        and (PROJECT / relative).exists()
-    ]
+    if event.get("tool_name") == "Bash":
+        targets = changed_sources()
+    else:
+        targets = [p for p in edited_paths(event) if p.endswith(".py") and p.startswith("src/")]
     if not targets:
         return
 

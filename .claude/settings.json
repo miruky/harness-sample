@@ -21,10 +21,32 @@
       "Read(./.env.local)",
       "Read(./.env.*.local)",
       "Read(./bookings.json)",
+      "Read(./evals/tasks/acceptance_*)",
       "Edit(./bookings.json)",
       "Edit(./uv.lock)",
       "Bash(git push *)"
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "allowWrite": [
+        "~/.cache/uv",
+        "~/Library/Caches/uv"
+      ],
+      "denyRead": [
+        "./.env",
+        "./.env.local",
+        "./bookings.json",
+        "./evals/tasks"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "pypi.org",
+        "files.pythonhosted.org"
+      ]
+    }
   },
   "hooks": {
     "SessionStart": [
@@ -51,7 +73,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|Bash",
         "hooks": [
           { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.agents/hooks/check_edit.py\"", "timeout": 120 }
         ]

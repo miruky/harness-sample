@@ -14,6 +14,16 @@ import subprocess
 from _common import PROJECT, block, read_input, record
 
 MAX_BLOCKS = 3
+# 人が確かめてから変えるファイル。編集ツールを止めるだけではシェル経由の変更が残るので、終わる前にも確かめる
+HUMAN_OWNED = (".agents/hooks/", ".github/workflows/", ".claude/settings.json", ".codex/")
+
+
+def human_owned_changes(status: str) -> list[str]:
+    paths = [line[3:].strip().strip('"') for line in status.splitlines()]
+    changed = [p for p in paths if p.startswith(HUMAN_OWNED)]
+    if "uv.lock" in paths and "pyproject.toml" not in paths:
+        changed.append("uv.lock")
+    return changed
 
 
 def main() -> None:
@@ -26,6 +36,18 @@ def main() -> None:
 
     state_file = PROJECT / ".harness" / "logs" / f"stop-{event.get('session_id', 'unknown')}.json"
     blocks = json.loads(state_file.read_text())["blocks"] if state_file.exists() else 0
+
+    owned = human_owned_changes(status.stdout)
+    if owned and blocks < MAX_BLOCKS:
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        state_file.write_text(json.dumps({"blocks": blocks + 1}))
+        block(
+            event,
+            "verify_before_stop",
+            "人が確かめてから変えるファイルが書き換わっています: "
+            + ", ".join(owned)
+            + "\n人から頼まれた変更でなければ git checkout で元に戻し、変えたい内容を返答に書いてください。",
+        )
 
     subprocess.run(["make", "format"], cwd=PROJECT, capture_output=True, text=True, timeout=120)
     check = subprocess.run(
